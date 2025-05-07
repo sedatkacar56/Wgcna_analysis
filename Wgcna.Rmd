@@ -1,0 +1,154 @@
+---
+title: "dimplots"
+author: "Sedat Kacar"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+🔹 Step 1: Install Required Packages
+
+```{r}
+
+
+library(WGCNA)
+library(Seurat)
+
+
+rds_function(8)
+```
+🔹 Step 2: Pseudobulk by Cluster (or Sample)
+
+🔹 Step 2a : Filter genes does not have at least 50 counts
+
+```{r}
+# Step 1: Get raw counts
+counts <- Endo_sickle@assays$RNA$counts  # or use @data if you're working with log-normalized
+
+# Step 2: Count how many cells express each gene
+gene_detected_counts <- Matrix::rowSums(counts > 0)
+
+# Step 3: Filter genes expressed in at least 50 cells
+genes_to_keep <- names(gene_detected_counts[gene_detected_counts >= 50])
+
+# Step 4: Subset Seurat object
+Endo_sickle_filtered <- subset(Endo_sickle, features = genes_to_keep)
+
+# Step 5: Average expression per group
+cluster_avg <- AverageExpression(Endo_sickle_filtered, return.seurat = FALSE)$RNA
+
+# Step 6: Transpose for WGCNA
+datExpr <- t(cluster_avg)
+
+```
+
+🔹 Step 4: Pick Soft-Thresholding Power
+
+
+```{r}
+powers = c(1:20)
+sft = pickSoftThreshold(datExpr, powerVector = powers, verbose = 5)
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab = "Soft Threshold (power)", ylab = "Scale Free Topology Model Fit, signed R^2", type = "n")
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, col = "red")
+abline(h = 0.90, col = "red")  # Look for R^2 ~ 0.9
+
+```
+
+🔹 Step 5: Build the Network
+
+
+```{r}
+softPower <- 6  # Use the power where R^2 is ~0.9
+net <- blockwiseModules(datExpr, power = softPower,
+                        TOMType = "unsigned", minModuleSize = 30,
+                        reassignThreshold = 0, mergeCutHeight = 0.25,
+                        numericLabels = TRUE, pamRespectsDendro = FALSE,
+                        saveTOMs = FALSE, verbose = 3)
+
+```
+
+🔹 Step 6: Get Module Eigengenes and Hub Genes
+
+
+```{r}
+moduleColors <- labels2colors(net$colors)
+MEs <- net$MEs
+
+# Identify hub genes in the turquoise module (example)
+module <- 6
+geneModuleMembership <- cor(datExpr, MEs, use = "p")
+hubGenes <- names(sort(geneModuleMembership[, paste0("ME", module)], decreasing = TRUE))[1:33]
+
+FeaturePlot(Endo_sickle, hubGenes, combine = FALSE)
+```
+
+🔹 Step 6a:et hub genes for all modules automatically
+
+```{r}
+hub_gene_list <- list()
+for (mod in names(MEs)) {
+  top_genes <- names(sort(geneModuleMembership[, mod], decreasing = TRUE))[1:33]
+  hub_gene_list[[mod]] <- top_genes
+}
+
+# View top hub genes per module
+hub_gene_list
+
+```
+
+🔹 Step 7:Plot MEs for every ME with ggplot2
+
+```{r}
+# Assume: correlation_matrix is the matrix you showed (traits in rows, MEs in columns)
+
+# Transpose so MEs become rows if needed:
+cor_df <- as.data.frame(MEs)
+
+# Loop through each module and plot its correlation with traits
+for (module in colnames(cor_df)) {
+  barplot(
+    cor_df[[module]],
+    names.arg = rownames(cor_df),
+    las = 2,
+    col = "steelblue",
+    ylim = c(-1, 1),
+    main = paste("Module-Trait Correlation:", module),
+    ylab = "Correlation"
+  )
+  abline(h = 0, lty = 2)
+  Sys.sleep(1)  # pause between plots
+}
+
+```
+
+🔹 Step 7b:Plot MEs for every ME with heatmap
+
+```{r}
+library(pheatmap)
+pheatmap(MEs, cluster_rows = TRUE, cluster_cols = TRUE) #that is cool
+
+```
+
+
+
+```{r}
+dim(geneModuleMembership) #genes versus ME types 
+dim(MEs) #Your metadata colum vs ME_types
+
+geneModuleMembership1 <- as.data.frame(geneModuleMembership)
+```
+
+```{r}
+#use scater
+#DimPlot
+#plot_clusters
+#SedatFunctions
+#Sccustomized
+
+```
+
