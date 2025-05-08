@@ -1,29 +1,32 @@
 ---
-title: "dimplots"
+title: "WGCNA ANALYSIS IN SINGLE CELL RNA !!!!"
 author: "Sedat Kacar"
 date: '`r Sys.Date()`'
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
+YOU WANT TO FIND PATTERNS OF GENES! YOU ARE EXACT RIGHT PLACE!!!
 
-🔹 Step 1: Install Required Packages
+🔹 Step 1: LET'S INSTALL OR LOAD THE PACKAGES
 
-```{r}
+```{r, message=FALSE}
 
 
 library(WGCNA)
 library(Seurat)
 
+# I will use my seurat_object, u can use any of your seurat object!
 
-rds_function(8)
+rds_function(8) #Ignore this!
+
 ```
 🔹 Step 2: Pseudobulk by Cluster (or Sample)
 
-🔹 Step 2a : Filter genes does not have at least 50 counts
+🔹 Step 2a : Filter genes does not have at least 50 counts (We will filter cells. We do not want artefacts to be lselected as pattterns. You can increase the threshold)
 
 ```{r}
 # Step 1: Get raw counts
@@ -141,9 +144,16 @@ dim(geneModuleMembership) #genes versus ME types
 dim(MEs) #Your metadata colum vs ME_types
 
 geneModuleMembership1 <- as.data.frame(geneModuleMembership)
+
 ```
 
-```{r}
+
+```{r, eval=FALSE,  include=FALSE}
+gh::gh("POST /user/repos", name = "Wgcna_analysis", private = FALSE) #making a new repo
+
+```
+
+```{r, eval=FALSE,  include=FALSE}
 #use scater
 #DimPlot
 #plot_clusters
